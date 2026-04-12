@@ -17,10 +17,14 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from core import views
+from django.contrib.auth import views as auth_views
 
 
 urlpatterns = [
     path('', views.login_view, name='login'),
-    path('dashboard/', views.dashboard_view, name='dashboard'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='/'), name='logout'),
+    path('vendedor/dashboard/', views.vendedor_dashboard_view, name='vendedor-dashboard'),
+    path('diretoria/dashboard/', views.diretoria_dashboard_view, name='diretoria-dashboard'),
+    path('diretoria/exportar/', views.exportar_excel, name='exportar_excel'),
     path('admin/', admin.site.urls)
 ]
