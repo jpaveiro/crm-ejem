@@ -19,3 +19,7 @@ def login_view(request):
             messages.error(request, 'Usuário ou senha inválidos.')
 
     return render(request, 'login.html')
+
+def dashboard(request):
+
+    return render(request, 'dashboard.html')
