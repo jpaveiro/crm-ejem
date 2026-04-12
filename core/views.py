@@ -1,5 +1,6 @@
 from django.http import HttpRequest
 from django.shortcuts import render, redirect
+from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.models import User
@@ -52,7 +53,7 @@ def diretoria_dashboard_view(request: HttpRequest):
             F('produto__preco_final') * F('quantidade'),
             output_field=FloatField()
         ),
-        lucro=ExpressionWrapper(
+        lucro_calc=ExpressionWrapper(
             (F('produto__preco_final') - F('produto__custo_compra')) * F('quantidade'),
             output_field=FloatField()
         ),
@@ -62,7 +63,7 @@ def diretoria_dashboard_view(request: HttpRequest):
         'produto__nome',
         'quantidade',
         'valor_total',
-        'lucro',
+        'lucro_calc',
         'vendedor__id',
         'vendedor__username',
         'vendedor__first_name',
@@ -79,6 +80,7 @@ def diretoria_dashboard_view(request: HttpRequest):
             'lucro_total': '0,00',
             'vendedores': [],
             'vendedor_selecionado': 'todos',
+            'page_obj': None,
         })
  
     df['vendedor_nome'] = df.apply(
@@ -97,7 +99,7 @@ def diretoria_dashboard_view(request: HttpRequest):
  
     total_vendas = int(df_f['quantidade'].sum())
     faturamento  = float(df_f['valor_total'].sum())
-    lucro_total  = float(df_f['lucro'].sum())
+    lucro_total  = float(df_f['lucro_calc'].sum())
  
     # Gráfico 1
     df_qtd = (
@@ -114,7 +116,7 @@ def diretoria_dashboard_view(request: HttpRequest):
         color_discrete_sequence=px.colors.sequential.Blues_r,
     )
     fig_qtd.update_traces(
-        textinfo = 'label+value'
+        textinfo='label+value'
     )
     fig_qtd.update_layout(
         paper_bgcolor='rgba(0,0,0,0)',
@@ -133,14 +135,13 @@ def diretoria_dashboard_view(request: HttpRequest):
     df_fat['valor_formatado'] = df_fat['valor_total'].apply(
         lambda v: f"R$ {v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
     )
-
     fig_fat = px.bar(
         df_fat, x='vendedor_nome', y='valor_total',
         title='Faturamento por Vendedor (R$)',
         labels={'vendedor_nome': 'Vendedor', 'valor_total': 'Valor Total (R$)'},
         color='vendedor_nome',
         color_discrete_sequence=px.colors.sequential.Blues_r,
-        text='valor_formatado', 
+        text='valor_formatado',
     )
     fig_fat.update_layout(
         plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
@@ -149,8 +150,21 @@ def diretoria_dashboard_view(request: HttpRequest):
         margin=dict(t=50, b=40, l=40, r=20),
     )
  
-    grafico_qtd = fig_qtd.to_html(full_html=False, include_plotlyjs='cdn',  config={'responsive': True})
+    grafico_qtd = fig_qtd.to_html(full_html=False, include_plotlyjs='cdn', config={'responsive': True})
     grafico_fat = fig_fat.to_html(full_html=False, include_plotlyjs=False, config={'responsive': True})
+
+    if vendedor_filtro != 'todos':
+        try:
+            qs_hist = qs.filter(vendedor__id=int(vendedor_filtro))
+        except ValueError:
+            qs_hist = qs
+    else:
+        qs_hist = qs
+
+    qs_hist = qs_hist.order_by('-criado_em')
+    paginator = Paginator(qs_hist, 20)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
  
     return render(request, 'diretoria-dashboard.html', {
         'grafico_qtd': grafico_qtd,
@@ -160,8 +174,8 @@ def diretoria_dashboard_view(request: HttpRequest):
         'lucro_total': f'{lucro_total:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.'),
         'vendedores': vendedores,
         'vendedor_selecionado': vendedor_filtro,
+        'page_obj': page_obj,
     })
- 
  
 @login_required(login_url='/login/')
 def exportar_excel(request: HttpRequest):

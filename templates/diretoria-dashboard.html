@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SunOps CRM — Dashboard</title>
+  <title>SunOps CRM - Dashboard</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap"
       rel="stylesheet"
@@ -230,7 +230,6 @@
       overflow: hidden;
     }
 
-    /* ── Empty state ── */
     .empty {
       grid-column: 1 / -1;
       text-align: center;
@@ -240,7 +239,106 @@
     .empty .icon { font-size: 3rem; margin-bottom: 1rem; }
     .empty p { font-size: 1rem; font-weight: 500; }
 
-    /* ── Animations ── */
+    .historico-section {
+      margin-top: 2rem;
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity .5s ease, transform .5s ease;
+    }
+
+    .historico-section.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .historico-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+      color: var(--text);
+    }
+
+    .historico-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .875rem;
+    }
+
+    .historico-table thead tr {
+      border-bottom: 2px solid var(--border);
+    }
+
+    .historico-table th {
+      text-align: left;
+      padding: 10px 12px;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+    }
+
+    .historico-table th.center { text-align: center; }
+    .historico-table th.right  { text-align: right; }
+
+    .historico-table tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .15s;
+    }
+
+    .historico-table tbody tr:hover { background: #f8fafc; }
+
+    .historico-table td {
+      padding: 12px;
+      color: var(--muted);
+    }
+
+    .historico-table td.bold  { color: var(--text); font-weight: 500; }
+    .historico-table td.center { text-align: center; color: var(--text); }
+    .historico-table td.right  { text-align: right; font-weight: 600; color: var(--text); }
+    .historico-table td.empty  { padding: 2rem; text-align: center; }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 1.25rem;
+      flex-wrap: wrap;
+      gap: .5rem;
+    }
+
+    .pagination-info {
+      font-size: .8rem;
+      color: var(--muted);
+    }
+
+    .pagination-controls {
+      display: flex;
+      gap: .5rem;
+    }
+
+    .btn-page {
+      padding: 6px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 999px;
+      font-size: .83rem;
+      font-weight: 600;
+      font-family: inherit;
+      color: var(--text);
+      text-decoration: none;
+      transition: border-color .18s;
+    }
+
+    .btn-page:hover { border-color: var(--blue); color: var(--blue); }
+
+    .btn-page.next {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #fff;
+    }
+
+    .btn-page.next:hover { background: var(--blue-dk); }
+
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(16px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -340,11 +438,70 @@
     {% endif %}
   </div>
 
+<div class="historico-section">
+  <div class="chart-card" style="overflow-x:auto;">
+    <h2 class="historico-title">Histórico de Vendas</h2>
+    <table class="historico-table">
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Produto</th>
+          <th class="center">Qtd</th>
+          <th class="right">Valor Total</th>
+          <th>Vendedor</th>
+          <th>Data</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for venda in page_obj %}
+        <tr>
+          <td class="bold">{{ venda.nome_cliente }}</td>
+          <td>{{ venda.produto.nome }}</td>
+          <td class="center">{{ venda.quantidade }}</td>
+          <td class="right">R$ {{ venda.valor_total|floatformat:2 }}</td>
+          <td>{{ venda.vendedor.get_full_name|default:venda.vendedor.username }}</td>
+          <td>{{ venda.criado_em|date:"d/m/Y H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="empty">Nenhuma venda encontrada.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+      <span class="pagination-info">
+        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+        &nbsp;·&nbsp; {{ page_obj.paginator.count }} vendas no total
+      </span>
+      <div class="pagination-controls">
+        {% if page_obj.has_previous %}
+          <a href="?vendedor={{ vendedor_selecionado }}&page={{ page_obj.previous_page_number }}" class="btn-page">← Anterior</a>
+        {% endif %}
+        {% if page_obj.has_next %}
+          <a href="?vendedor={{ vendedor_selecionado }}&page={{ page_obj.next_page_number }}" class="btn-page next">Próxima →</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
 </div>
 
 <footer>
   SunOps CRM &nbsp;·&nbsp; Todos os direitos reservados
 </footer>
 
+<script>
+  const section = document.querySelector('.historico-section');
+  const observer = new IntersectionObserver(
+    ([entry]) => { if (entry.isIntersecting) { section.classList.add('visible'); } },
+    { threshold: 0.1 }
+  );
+  observer.observe(section);
+</script>
 </body>
 </html>
