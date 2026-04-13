@@ -9,6 +9,8 @@ from django.db.models import F, ExpressionWrapper, FloatField, Count
 import pandas as pd
 import plotly.express as px
 from django.http import HttpResponse
+import io
+
  
 from .models import Venda, Produto
 
@@ -444,9 +446,65 @@ def diretoria_dashboard_view(request: HttpRequest):
         'page_obj': page_obj,
     })
  
-@login_required(login_url='/login/')
+@login_required(login_url='/')
 def exportar_excel(request: HttpRequest):
-    return redirect('/diretoria/dashboard/')
+    if not request.user.is_superuser:
+        return redirect('/vendedor/dashboard/')
+
+    vendedor_filtro = request.GET.get('vendedor', 'todos')
+
+    qs = Venda.objects.select_related('vendedor', 'produto').annotate(
+        valor_total=ExpressionWrapper(
+            F('produto__preco_final') * F('quantidade'),
+            output_field=FloatField()
+        ),
+    )
+
+    if vendedor_filtro != 'todos':
+        try:
+            qs = qs.filter(vendedor__id=int(vendedor_filtro))
+        except ValueError:
+            pass
+
+    data = list(qs.values(
+        'vendedor__username',
+        'nome_cliente',
+        'produto__nome',
+        'quantidade',
+        'valor_total',
+    ))
+
+    df = pd.DataFrame(data)
+
+    if df.empty:
+        df = pd.DataFrame(columns=['Vendedor', 'Cliente', 'Produto', 'Quantidade', 'Valor Total (R$)'])
+    else:
+        df = df.rename(columns={
+            'vendedor__username': 'Vendedor',
+            'nome_cliente': 'Cliente',
+            'produto__nome': 'Produto',
+            'quantidade': 'Quantidade',
+            'valor_total': 'Valor Total (R$)',
+        })
+
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Vendas')
+
+        ws = writer.sheets['Vendas']
+        for col in ws.columns:
+            max_len = max(len(str(cell.value or '')) for cell in col)
+            ws.column_dimensions[col[0].column_letter].width = max_len + 4
+
+    buffer.seek(0)
+    nome_arquivo = 'vendas_todas.xlsx' if vendedor_filtro == 'todos' else f'vendas_{vendedor_filtro}.xlsx'
+    response = HttpResponse(
+        buffer,
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = f'attachment; filename="{nome_arquivo}"'
+
+    return response
 
 @login_required(login_url='/')
 def vendedores_view(request: HttpRequest):
