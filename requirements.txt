@@ -10,3 +10,4 @@ plotly==6.7.0
 python-dateutil==2.9.0.post0
 six==1.17.0
 sqlparse==0.5.5
+gunicorn==21.0.0
