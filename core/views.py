@@ -33,13 +33,285 @@ def login_view(request: HttpRequest):
             
     except User.DoesNotExist:
         messages.error(request, 'Usuário ou senha inválidos.')
-        redirect('/')
+        return redirect('/')
   
 @login_required(login_url='/')
 def vendedor_dashboard_view(request: HttpRequest):
     if request.user.is_superuser:
         return redirect('/diretoria/dashboard/')
-    return render(request, 'vendedor-dashboard.html')
+
+    qs = Venda.objects.filter(vendedor=request.user).select_related('produto').annotate(
+        valor_total=ExpressionWrapper(
+            F('produto__preco_final') * F('quantidade'),
+            output_field=FloatField()
+        ),
+        lucro_calc=ExpressionWrapper(
+            (F('produto__preco_final') - F('produto__custo_compra')) * F('quantidade'),
+            output_field=FloatField()
+        ),
+    )
+
+    data = list(qs.values('nome_cliente', 'produto__nome', 'quantidade', 'valor_total', 'lucro_calc'))
+    df = pd.DataFrame(data)
+
+    if df.empty:
+        return render(request, 'vendedor-dashboard.html', {
+            'grafico_produtos': '',
+            'grafico_fat': '',
+            'total_vendas': 0,
+            'faturamento': '0,00',
+            'lucro_total': '0,00',
+            'page_obj': None,
+        })
+
+    total_vendas = int(df['quantidade'].sum())
+    faturamento  = float(df['valor_total'].sum())
+    lucro_total  = float(df['lucro_calc'].sum())
+
+    # Gráfico 1
+    df_qtd = (
+        df.groupby('produto__nome', as_index=False)['quantidade']
+        .sum()
+        .rename(columns={'produto__nome': 'produto', 'quantidade': 'qtd'})
+        .sort_values('qtd', ascending=False)
+    )
+    fig_qtd = px.bar(
+        df_qtd, x='produto', y='qtd',
+        title='Vendas por Produto (Unidades)',
+        labels={'produto': 'Produto', 'qtd': 'Qtd Vendida'},
+        color='produto',
+        color_discrete_sequence=px.colors.sequential.Blues_r,
+        text='qtd',
+    )
+    fig_qtd.update_layout(
+        plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(family='Montserrat, sans-serif', color='#1e293b'),
+        showlegend=False,
+        height=360,
+        margin=dict(t=50, b=40, l=40, r=20),
+    )
+
+    # Gráfico 2
+    df_fat = (
+        df.groupby('produto__nome', as_index=False)['valor_total']
+        .sum()
+        .rename(columns={'produto__nome': 'produto'})
+        .sort_values('valor_total', ascending=False)
+    )
+    df_fat['valor_formatado'] = df_fat['valor_total'].apply(
+        lambda v: f"R$ {v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+    )
+    fig_fat = px.bar(
+        df_fat, x='produto', y='valor_total',
+        title='Faturamento por Produto (R$)',
+        labels={'produto': 'Produto', 'valor_total': 'Valor Total (R$)'},
+        color='produto',
+        color_discrete_sequence=px.colors.sequential.Blues_r,
+        text='valor_formatado',
+    )
+    fig_fat.update_layout(
+        plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(family='Montserrat, sans-serif', color='#1e293b'),
+        showlegend=False,
+        height=360,
+        margin=dict(t=50, b=40, l=40, r=20),
+    )
+
+    grafico_produtos = fig_qtd.to_html(full_html=False, include_plotlyjs='cdn', config={'responsive': True})
+    grafico_fat      = fig_fat.to_html(full_html=False, include_plotlyjs=False, config={'responsive': True})
+
+    qs_hist     = qs.order_by('-criado_em')
+    paginator   = Paginator(qs_hist, 20)
+    page_number = request.GET.get('page', 1)
+    page_obj    = paginator.get_page(page_number)
+
+    return render(request, 'vendedor-dashboard.html', {
+        'grafico_produtos': grafico_produtos,
+        'grafico_fat':      grafico_fat,
+        'total_vendas':     total_vendas,
+        'faturamento':      f'{faturamento:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.'),
+        'lucro_total':      f'{lucro_total:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.'),
+        'page_obj':         page_obj,
+    })
+
+
+@login_required(login_url='/')
+def vendedor_venda_criar_view(request: HttpRequest):
+    if request.user.is_superuser:
+        return redirect('/diretoria/dashboard/')
+
+    produtos = Produto.objects.all().order_by('nome')
+
+    if request.method == 'POST':
+        nome_cliente = request.POST.get('nome_cliente', '').strip()
+        produto_id = request.POST.get('produto', '').strip()
+        quantidade = request.POST.get('quantidade', '').strip()
+
+        if not nome_cliente or not produto_id or not quantidade:
+            messages.error(request, 'Todos os campos são obrigatórios.')
+            return render(request, 'vendedor-venda-form.html', {'acao': 'criar', 'produtos': produtos})
+
+        try:
+            qtd = int(quantidade)
+            if qtd <= 0:
+                raise ValueError
+        except ValueError:
+            messages.error(request, 'Quantidade inválida.')
+            return render(request, 'vendedor-venda-form.html', {'acao': 'criar', 'produtos': produtos})
+
+        try:
+            produto = Produto.objects.select_for_update().get(id=produto_id)
+
+            if produto.quantidade_estoque < qtd:
+                messages.error(
+                    request,
+                    f'Estoque insuficiente para "{produto.nome}". Disponível: {produto.quantidade_estoque}.'
+                )
+                return render(request, 'vendedor-venda-form.html', {'acao': 'criar', 'produtos': produtos})
+
+            produto.quantidade_estoque -= qtd
+            produto.save()
+
+            Venda.objects.create(
+                nome_cliente=nome_cliente,
+                produto=produto,
+                quantidade=qtd,
+                vendedor=request.user,
+            )
+
+        except Produto.DoesNotExist:
+            messages.error(request, 'Produto inválido.')
+            return render(request, 'vendedor-venda-form.html', {'acao': 'criar', 'produtos': produtos})
+
+        messages.success(request, 'Venda registrada com sucesso.')
+        return redirect('vendedor-dashboard')
+
+    return render(request, 'vendedor-venda-form.html', {'acao': 'criar', 'produtos': produtos})
+
+
+@login_required(login_url='/')
+def vendedor_venda_editar_view(request: HttpRequest, pk: int):
+    if request.user.is_superuser:
+        return redirect('/diretoria/dashboard/')
+
+    try:
+        venda = Venda.objects.get(id=pk, vendedor=request.user)
+    except Venda.DoesNotExist:
+        messages.error(request, 'Venda não encontrada.')
+        return redirect('vendedor-dashboard')
+
+    produtos = Produto.objects.all().order_by('nome')
+
+    if request.method == 'POST':
+        nome_cliente = request.POST.get('nome_cliente', '').strip()
+        produto_id   = request.POST.get('produto', '').strip()
+        quantidade   = request.POST.get('quantidade', '').strip()
+
+        if not nome_cliente or not produto_id or not quantidade:
+            messages.error(request, 'Todos os campos são obrigatórios.')
+            return render(request, 'vendedor-venda-form.html', {
+                'acao': 'editar',
+                'venda': venda,
+                'produtos': produtos
+            })
+
+        try:
+            produto_novo = Produto.objects.get(id=produto_id)
+            qtd_nova = int(quantidade)
+            if qtd_nova <= 0:
+                raise ValueError
+        except (Produto.DoesNotExist, ValueError):
+            messages.error(request, 'Produto ou quantidade inválidos.')
+            return render(request, 'vendedor-venda-form.html', {
+                'acao': 'editar',
+                'venda': venda,
+                'produtos': produtos
+            })
+
+        produto_antigo = venda.produto
+        qtd_antiga = venda.quantidade
+
+        if produto_antigo.id == produto_novo.id:
+            estoque_disponivel = produto_novo.quantidade_estoque + qtd_antiga
+            if qtd_nova > estoque_disponivel:
+                messages.error(
+                    request,
+                    f'Estoque insuficiente para "{produto_novo.nome}". Disponível: {estoque_disponivel}.'
+                )
+                return render(request, 'vendedor-venda-form.html', {
+                    'acao': 'editar',
+                    'venda': venda,
+                    'produtos': produtos
+                })
+
+            produto_novo.quantidade_estoque = estoque_disponivel - qtd_nova
+            produto_novo.save()
+
+        else:
+            produto_antigo.quantidade_estoque += qtd_antiga
+            produto_antigo.save()
+
+            if qtd_nova > produto_novo.quantidade_estoque:
+                produto_antigo.quantidade_estoque -= qtd_antiga
+                produto_antigo.save()
+
+                messages.error(
+                    request,
+                    f'Estoque insuficiente para "{produto_novo.nome}". Disponível: {produto_novo.quantidade_estoque}.'
+                )
+                return render(request, 'vendedor-venda-form.html', {
+                    'acao': 'editar',
+                    'venda': venda,
+                    'produtos': produtos
+                })
+
+            produto_novo.quantidade_estoque -= qtd_nova
+            produto_novo.save()
+
+        venda.nome_cliente = nome_cliente
+        venda.produto = produto_novo
+        venda.quantidade = qtd_nova
+        venda.save()
+
+        messages.success(request, 'Venda atualizada com sucesso.')
+        return redirect('vendedor-dashboard')
+
+    return render(request, 'vendedor-venda-form.html', {
+        'acao': 'editar',
+        'venda': venda,
+        'produtos': produtos
+    })
+
+
+@login_required(login_url='/')
+def vendedor_venda_excluir_view(request: HttpRequest, pk: int):
+    if request.user.is_superuser:
+        return redirect('/diretoria/dashboard/')
+
+    if request.method == 'POST':
+        try:
+            venda = Venda.objects.get(id=pk, vendedor=request.user)
+
+            produto = venda.produto
+            produto.quantidade_estoque += venda.quantidade
+            produto.save()
+
+            venda.delete()
+            messages.success(request, 'Venda excluída com sucesso.')
+
+        except Venda.DoesNotExist:
+            messages.error(request, 'Venda não encontrada.')
+
+    return redirect('vendedor-dashboard')
+
+
+@login_required(login_url='/')
+def vendedor_produtos_view(request: HttpRequest):
+    if request.user.is_superuser:
+        return redirect('/diretoria/dashboard/')
+    produtos = Produto.objects.all().order_by('nome')
+    return render(request, 'vendedor-produtos.html', {'produtos': produtos})
+
 
 @login_required(login_url='/')
 def diretoria_dashboard_view(request: HttpRequest):
@@ -348,6 +620,6 @@ def produto_excluir_view(request: HttpRequest, pk: int):
             messages.success(request, f'Produto "{nome}" excluído com sucesso.')
         except Produto.DoesNotExist:
             messages.error(request, 'Produto não encontrado.')
-        except Exception as e:
+        except Exception:
             messages.error(request, f'Não foi possível excluir, pois existem vendas realizadas com este produto.')
     return redirect('produtos')
