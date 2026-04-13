@@ -70,6 +70,10 @@ def vendedor_dashboard_view(request: HttpRequest):
     faturamento  = float(df['valor_total'].sum())
     lucro_total  = float(df['lucro_calc'].sum())
 
+    def resumir_nome(nome, limite=18):
+        nome = str(nome).strip()
+        return nome if len(nome) <= limite else nome[:limite].rstrip() + '...'
+
     # Gráfico 1
     df_qtd = (
         df.groupby('produto__nome', as_index=False)['quantidade']
@@ -77,21 +81,36 @@ def vendedor_dashboard_view(request: HttpRequest):
         .rename(columns={'produto__nome': 'produto', 'quantidade': 'qtd'})
         .sort_values('qtd', ascending=False)
     )
-    fig_qtd = px.bar(
-        df_qtd, x='produto', y='qtd',
+    df_qtd['produto_curto'] = df_qtd['produto'].apply(resumir_nome)
+
+    fig_qtd = px.pie(
+        df_qtd,
+        names='produto_curto',
+        values='qtd',
         title='Vendas por Produto (Unidades)',
-        labels={'produto': 'Produto', 'qtd': 'Qtd Vendida'},
-        color='produto',
         color_discrete_sequence=px.colors.sequential.Blues_r,
-        text='qtd',
+        custom_data=['produto']
+    )
+    fig_qtd.update_traces(
+        textinfo='percent+label',
+        hovertemplate='<b>%{customdata[0]}</b><br>Qtd vendida: %{value}<br>Participação: %{percent}<extra></extra>'
     )
     fig_qtd.update_layout(
-        plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
         font=dict(family='Montserrat, sans-serif', color='#1e293b'),
-        showlegend=False,
+        showlegend=True,
         height=360,
-        margin=dict(t=50, b=40, l=40, r=20),
+        margin=dict(t=50, b=20, l=20, r=20),
+        legend=dict(
+            orientation='h',
+            yanchor='bottom',
+            y=-0.15,
+            xanchor='center',
+            x=0.5
+        ),
     )
+
 
     # Gráfico 2
     df_fat = (
@@ -100,23 +119,34 @@ def vendedor_dashboard_view(request: HttpRequest):
         .rename(columns={'produto__nome': 'produto'})
         .sort_values('valor_total', ascending=False)
     )
+    df_fat['produto_curto'] = df_fat['produto'].apply(resumir_nome)
     df_fat['valor_formatado'] = df_fat['valor_total'].apply(
         lambda v: f"R$ {v:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
     )
+
     fig_fat = px.bar(
-        df_fat, x='produto', y='valor_total',
+        df_fat,
+        x='produto_curto',
+        y='valor_total',
         title='Faturamento por Produto (R$)',
-        labels={'produto': 'Produto', 'valor_total': 'Valor Total (R$)'},
-        color='produto',
+        labels={'produto_curto': 'Produto', 'valor_total': 'Valor Total (R$)'},
+        color='produto_curto',
         color_discrete_sequence=px.colors.sequential.Blues_r,
         text='valor_formatado',
+        custom_data=['produto']
+    )
+    fig_fat.update_traces(
+        hovertemplate='<b>%{customdata[0]}</b><br>Faturamento: %{text}<extra></extra>',
+        textposition='outside',
+        cliponaxis=False
     )
     fig_fat.update_layout(
-        plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
         font=dict(family='Montserrat, sans-serif', color='#1e293b'),
         showlegend=False,
         height=360,
-        margin=dict(t=50, b=40, l=40, r=20),
+        margin=dict(t=50, b=90, l=40, r=20),
     )
 
     grafico_produtos = fig_qtd.to_html(full_html=False, include_plotlyjs='cdn', config={'responsive': True})
@@ -135,6 +165,7 @@ def vendedor_dashboard_view(request: HttpRequest):
         'lucro_total':      f'{lucro_total:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.'),
         'page_obj':         page_obj,
     })
+
 
 
 @login_required(login_url='/')
