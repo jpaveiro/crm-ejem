@@ -1,0 +1,215 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SunOps CRM - Vendedores</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:      #2563eb;
+      --blue-dk:   #1d4ed8;
+      --amber:     #f59e0b;
+      --green:     #16a34a;
+      --red:       #dc2626;
+      --red-dk:    #b91c1c;
+      --bg:        #f4f5f7;
+      --surface:   #ffffff;
+      --border:    #e5e7eb;
+      --text:      #111827;
+      --muted:     #6b7280;
+      --shadow:    0 2px 16px rgba(0,0,0,.08);
+      --sidebar-w: 240px;
+    }
+
+    body { font-family: 'Montserrat', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    .topbar {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 0 32px; height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      box-shadow: 0 1px 6px rgba(0,0,0,.06);
+    }
+    .topbar-logo { display: flex; align-items: center; gap: 10px; font-size: 1.2rem; font-weight: 700; letter-spacing: -.02em; text-decoration: none; color: inherit; }
+    .topbar-right { display: flex; align-items: center; gap: 16px; }
+    .topbar-user { font-size: .85rem; color: var(--muted); }
+    .topbar-user strong { color: var(--text); }
+    .btn-logout {
+      padding: 7px 18px; background: transparent; border: 1.5px solid var(--border);
+      border-radius: 999px; font-size: .83rem; font-weight: 600; font-family: inherit;
+      color: var(--muted); cursor: pointer; transition: border-color .18s, color .18s;
+    }
+    .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+    .sidebar {
+      position: fixed; top: 64px; left: 0; bottom: 0; width: var(--sidebar-w);
+      background: var(--surface); border-right: 1px solid var(--border);
+      padding: 1.5rem 1rem; display: flex; flex-direction: column; gap: 4px;
+      z-index: 100; overflow-y: auto;
+    }
+    .sidebar-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); padding: 0 12px; margin: 8px 0 4px; }
+    .sidebar-link {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px;
+      font-size: .88rem; font-weight: 600; color: var(--muted); text-decoration: none;
+      transition: background .15s, color .15s;
+    }
+    .sidebar-link:hover { background: var(--bg); color: var(--text); }
+    .sidebar-link.active { background: #eff6ff; color: var(--blue); }
+    .sidebar-link .icon { font-size: 1.1rem; width: 22px; text-align: center; flex-shrink: 0; }
+
+    .main { margin-top: 64px; margin-left: var(--sidebar-w); padding: 2.5rem 2rem; min-height: calc(100vh - 64px); }
+
+    .page-header {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;
+    }
+    .page-header h1 { font-size: 1.7rem; font-weight: 800; letter-spacing: -.03em; }
+    .page-header p  { font-size: .9rem; color: var(--muted); margin-top: .25rem; font-weight: 500; }
+
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 10px 22px; background: var(--blue); color: #fff;
+      border: none; border-radius: 999px; font-size: .88rem; font-weight: 600; font-family: inherit;
+      cursor: pointer; text-decoration: none; transition: background .18s, transform .1s;
+    }
+    .btn-primary:hover { background: var(--blue-dk); }
+    .btn-primary:active { transform: scale(.97); }
+
+    .alerts { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: .5rem; }
+    .alert {
+      padding: 12px 16px; border-radius: 10px; font-size: .875rem; font-weight: 500;
+      animation: fadeUp .3s ease both;
+    }
+    .alert-success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+    .alert-error   { background: #fef2f2; color: var(--red); border: 1px solid #fecaca; }
+
+    .table-card { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; animation: fadeUp .4s ease both; }
+
+    table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+    thead tr { border-bottom: 2px solid var(--border); }
+    th {
+      text-align: left; padding: 12px 16px; color: var(--muted);
+      font-weight: 700; font-size: .72rem; text-transform: uppercase; letter-spacing: .7px;
+    }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #f8fafc; }
+    td { padding: 14px 16px; color: var(--muted); }
+    td.bold { color: var(--text); font-weight: 600; }
+    td.actions { text-align: right; white-space: nowrap; }
+
+    .empty-row td { padding: 3.5rem; text-align: center; color: var(--muted); font-size: .9rem; }
+
+    .btn-edit, .btn-delete {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 6px 14px; border-radius: 999px; font-size: .8rem; font-weight: 600; font-family: inherit;
+      cursor: pointer; text-decoration: none; transition: background .15s, color .15s, border-color .15s;
+    }
+    .btn-edit { background: transparent; border: 1.5px solid var(--border); color: var(--muted); }
+    .btn-edit:hover { border-color: var(--blue); color: var(--blue); }
+    .btn-delete { background: transparent; border: 1.5px solid var(--border); color: var(--muted); }
+    .btn-delete:hover { border-color: var(--red); color: var(--red); }
+    footer { margin-left: var(--sidebar-w); text-align: center; font-size: .75rem; color: #c0c7d0; padding: 1.5rem 0; font-weight: 500; border-top: 1px solid var(--border); }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main, footer { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-logo">
+    <img src="{% static 'BlackLogo.svg' %}" alt="SunOps CRM" height="32" />
+    <span>SunOps CRM</span>
+  </div>
+  <div class="topbar-right">
+    <span class="topbar-user">Olá, <strong>{{ request.user.get_full_name|default:request.user.username }}</strong></span>
+    <form method="post" action="{% url 'logout' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn-logout">Sair</button>
+    </form>
+  </div>
+</header>
+
+<aside class="sidebar">
+  <span class="sidebar-label">Menu</span>
+  <a href="{% url 'diretoria-dashboard' %}" class="sidebar-link">
+    <span class="icon">📊</span> Visão Geral
+  </a>
+  <a href="{% url 'vendedores' %}" class="sidebar-link active">
+    <span class="icon">👤</span> Vendedores
+  </a>
+  <a href="{% url 'produtos' %}" class="sidebar-link">
+    <span class="icon">📦</span> Produtos
+  </a>
+</aside>
+
+<div class="main">
+
+  <div class="page-header">
+    <div>
+      <h1>Vendedores</h1>
+      <p>Gerencie os usuários vendedores do sistema</p>
+    </div>
+    <a href="{% url 'vendedor-criar' %}" class="btn-primary">+ Novo Vendedor</a>
+  </div>
+
+  {% if messages %}
+  <div class="alerts">
+    {% for msg in messages %}
+    <div class="alert {% if msg.tags == 'success' %}alert-success{% else %}alert-error{% endif %}">
+      {{ msg }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>E-mail</th>
+          <th>Vendas</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in vendedores %}
+        <tr>
+          <td>{{ v.username }}</td>
+          <td>{{ v.email|default:"—" }}</td>
+          <td>
+            <span>{{ v.total_vendas }}</span>
+          </td>
+          <td class="actions">
+            <a href="{% url 'vendedor-editar' v.pk %}" class="btn-edit">✏️ Editar</a>
+            <form method="post" action="{% url 'vendedor-excluir' v.pk %}" style="display:inline;" onsubmit="return confirm('Excluir o vendedor {{ v.get_full_name|default:v.username }}? Esta ação não pode ser desfeita.')">
+              {% csrf_token %}
+              <button type="submit" class="btn-delete">🗑 Excluir</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr class="empty-row">
+          <td colspan="5">Nenhum vendedor cadastrado ainda.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<footer>SunOps CRM &nbsp;·&nbsp; Todos os direitos reservados</footer>
+
+</body>
+</html>

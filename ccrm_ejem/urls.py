@@ -26,5 +26,13 @@ urlpatterns = [
     path('vendedor/dashboard/', views.vendedor_dashboard_view, name='vendedor-dashboard'),
     path('diretoria/dashboard/', views.diretoria_dashboard_view, name='diretoria-dashboard'),
     path('diretoria/exportar/', views.exportar_excel, name='exportar_excel'),
+    path('diretoria/vendedores/', views.vendedores_view, name='vendedores'),
+    path('diretoria/vendedores/criar/', views.vendedor_criar_view, name='vendedor-criar'),
+    path('diretoria/vendedores/<int:pk>/editar/', views.vendedor_editar_view, name='vendedor-editar'),
+    path('diretoria/vendedores/<int:pk>/excluir/', views.vendedor_excluir_view, name='vendedor-excluir'),
+    path('diretoria/produtos/', views.produtos_view, name='produtos'),
+    path('diretoria/produtos/criar/', views.produto_criar_view, name='produto-criar'),
+    path('diretoria/produtos/<int:pk>/editar/', views.produto_editar_view, name='produto-editar'),
+    path('diretoria/produtos/<int:pk>/excluir/', views.produto_excluir_view, name='produto-excluir'),
     path('admin/', admin.site.urls)
 ]
