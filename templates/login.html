@@ -11,12 +11,19 @@
     />
   </head>
   <style>
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:    #2563eb;
+      --blue-dk: #1d4ed8;
+      --amber:   #f59e0b;
+      --red:     #dc2626;
+      --bg:      #f4f5f7;
+      --surface: #ffffff;
+      --border:  #e5e7eb;
+      --text:    #111827;
+      --muted:   #6b7280;
+      --shadow:  0 2px 16px rgba(0,0,0,.08);
     }
 
     body {
@@ -28,19 +35,29 @@
     }
 
     .topbar {
-      background: #fff;
-      border-bottom: 1px solid #e5e7eb;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
       padding: 0 48px;
       height: 72px;
       display: flex;
       align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 6px rgba(0,0,0,.06);
     }
 
     .topbar-logo {
-      font-size: 1.4rem;
-      font-weight: 600;
-      color: #111;
-      letter-spacing: -0.02em;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
     }
 
     .topbar-logo span.sun {
@@ -163,7 +180,7 @@
     .btn-entrar:hover {
       background: #1d4ed8;
     }
-    
+
     .btn-entrar:active {
       transform: scale(0.98);
     }
@@ -181,9 +198,10 @@
   </style>
   <body>
     <header class="topbar">
-      <span class="topbar-logo">
-        <span class="sun">Sun</span><span class="ops">Ops</span> CRM 1.0
-      </span>
+      <div class="topbar-logo">
+        <img src="{% static 'BlackLogo.svg' %}" alt="SunOps CRM" height="36" />
+        <span>SunOps CRM</span>
+      </div>
     </header>
 
     <div class="page">
