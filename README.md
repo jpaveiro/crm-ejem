@@ -1,7 +1,8 @@
 # Case 1 - CRM EJEM
 
-Superusuário
+## Usuários padrão
+Diretoria <br>
 diretoria@sunopscrm.com | Admin@123
 
-Vendedores
+Vendedores <br>
 (!) Todas as senhas são Vendedor@123
