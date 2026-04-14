@@ -154,6 +154,28 @@
     .page-header h1 { font-size: 1.7rem; font-weight: 800; letter-spacing: -.03em; }
     .page-header p  { font-size: .9rem; color: var(--muted); margin-top: .25rem; font-weight: 500; }
 
+    .status {
+      font-weight: bold;
+      padding: 4px 8px;
+      border-radius: 8px;
+      display: inline-block;
+     } 
+
+    .status-zero {
+      color: #e53935;
+      background-color: #fdecea;
+     }
+
+    .status-baixo {
+      color: #fb8c00;
+      background-color: #fff3e0;
+     }
+
+    .status-ok {
+      color: #43a047;
+      background-color: #e8f5e9;
+     }
+    
     .btn-primary {
       display: inline-flex; align-items: center; gap: 7px;
       padding: 10px 22px; background: var(--blue); color: #fff;
@@ -286,7 +308,16 @@
           <td class="right">{{ p.preco_final|floatformat:2 }}</td>
           <td class="right {% if p.preco_final > p.custo_compra %}green{% else %}amber{% endif %}">
             {{ p.margem|floatformat:0 }}%
-          </td>
+          </td> 
+       <td>
+        {% if produto.quantidade == 0 %}
+           <span class="status status-zero">Sem estoque</span>
+        {% elif produto.quantidade <= 3 %}
+           <span class="status status-baixo">{{ produto.quantidade }} un.</span>
+        {% else %}
+           <span class="status status-ok">{{ produto.quantidade }} un.</span>
+        {% endif %}
+           </td>
           <td class="center">
             {% if p.quantidade_estoque == 0 %}
               <span>Sem estoque</span>
