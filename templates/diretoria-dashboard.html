@@ -324,7 +324,7 @@
     </form>
   </div>
 </header>
-
+    
 <aside class="sidebar">
   <span class="sidebar-label">Menu</span>
   <a href="{% url 'diretoria-dashboard' %}" class="sidebar-link active">
@@ -372,6 +372,15 @@
     </div>
   </div>
 
+    <div class="filter-bar">
+      <form method="GET">
+        <select name="tempo" onchange="this.form.submit()">
+            <option value="7dias">7 dias</option>
+            <option value="30dias">30 dias</option>
+        </select>
+    </form>
+</div>
+  
   <div class="kpi-grid">
     <div class="kpi-card blue">
       <i class="fas fa-shopping-cart"></i>
@@ -399,7 +408,9 @@
       <div class="chart-card">{{ grafico_fat|safe }}</div>
     {% else %}
       <div class="empty">
-        <div class="icon">📊</div>
+        <div class="icon">
+          <i class="fas fa-chart-bar"></i>
+          </div>
         <p>Nenhuma venda registrada ainda.</p>
       </div>
     {% endif %}
