@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SunOps CRM - {% if acao == 'criar' %}Novo Produto{% else %}Editar Produto{% endif %}</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -234,13 +235,13 @@
 <aside class="sidebar">
   <span class="sidebar-label">Menu</span>
   <a href="{% url 'diretoria-dashboard' %}" class="sidebar-link">
-    <span class="icon">📊</span> Visão Geral
+    <i class="fas fa-chart-bar"></i> Visão Geral
   </a>
   <a href="{% url 'vendedores' %}" class="sidebar-link">
-    <span class="icon">👤</span> Vendedores
+    <i class="fas fa-user"></i> Vendedores
   </a>
   <a href="{% url 'produtos' %}" class="sidebar-link active">
-    <span class="icon">📦</span> Produtos
+    <i class="fas fa-box"></i> Produtos
   </a>
 </aside>
 
