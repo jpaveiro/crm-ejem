@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SunOps CRM - Meu Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -219,6 +220,10 @@
     .kpi-value { font-size: 2.1rem; font-weight: 800; letter-spacing: -.04em; color: var(--text); line-height: 1; }
     .kpi-sub   { font-size: .78rem; color: var(--muted); margin-top: .4rem; font-weight: 500; }
 
+    .i {
+      color: black;
+     }
+    
     .charts-grid {
       display: grid; grid-template-columns: 1fr 1fr;
       gap: 1.5rem;
@@ -332,10 +337,10 @@
 <aside class="sidebar">
   <span class="sidebar-label">Menu</span>
   <a href="{% url 'vendedor-dashboard' %}" class="sidebar-link active">
-    <span class="icon">📊</span> Meu Dashboard
+    <i class="fas fa-chart-bar"></i> Meu Dashboard
   </a>
   <a href="{% url 'vendedor-produtos' %}" class="sidebar-link">
-    <span class="icon">📦</span> Produtos
+    <i class="fas fa-box"></i> Produtos
   </a>
 </aside>
 
@@ -359,19 +364,19 @@
 
   <div class="kpi-grid">
     <div class="kpi-card blue">
-      <div class="kpi-icon">🛒</div>
+      <i class="fas fa-shopping-cart"></i>
       <div class="kpi-label">Total de Produtos Vendidos</div>
       <div class="kpi-value">{{ total_vendas }}</div>
       <div class="kpi-sub">produtos vendidos</div>
     </div>
     <div class="kpi-card amber">
-      <div class="kpi-icon">💰</div>
+      <i class="fas fa-money-bill"></i>
       <div class="kpi-label">Faturamento</div>
       <div class="kpi-value">R$ {{ faturamento }}</div>
       <div class="kpi-sub">valor total das minhas vendas</div>
     </div>
     <div class="kpi-card green">
-      <div class="kpi-icon">📈</div>
+      <i class="fas fa-chart-line"></i>
       <div class="kpi-label">Lucro Total</div>
       <div class="kpi-value">R$ {{ lucro_total }}</div>
       <div class="kpi-sub">lucro líquido acumulado</div>
@@ -384,7 +389,7 @@
       <div class="chart-card">{{ grafico_fat|safe }}</div>
     {% else %}
       <div class="empty">
-        <div class="icon">📊</div>
+        <i class="fas fa-chart-bar"></i>
         <p>Nenhuma venda registrada ainda. <a href="{% url 'vendedor-venda-criar' %}" style="color:var(--blue);">Registre a primeira!</a></p>
       </div>
     {% endif %}
