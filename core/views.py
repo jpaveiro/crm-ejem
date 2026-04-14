@@ -6,6 +6,9 @@ from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.db.models import F, ExpressionWrapper, FloatField, Count
+from django.utils import timezone
+from datetime import timedelta
+from .models import Venda
 import pandas as pd
 import plotly.express as px
 from django.http import HttpResponse
@@ -36,7 +39,31 @@ def login_view(request: HttpRequest):
     except User.DoesNotExist:
         messages.error(request, 'Usuário ou senha inválidos.')
         return redirect('/')
-  
+     
+@login_required(login_url='/')
+def dashboard(request):
+    filtro = request.GET.get('tempo')
+
+    hoje = timezone.now()
+
+    if filtro == '7dias':
+        data_inicio = hoje - timedelta(days=7)
+    elif filtro == '30dias':
+        data_inicio = hoje - timedelta(days=30)
+    else:
+        data_inicio = hoje - timedelta(days=7)  # padrão
+
+    vendas = Venda.objects.filter(data__gte=data_inicio)
+
+    total_vendas = vendas.count()
+
+    context = {
+        'total_vendas': total_vendas,
+        'filtro': filtro,
+    }
+
+    return render(request, 'dashboard.html', context)
+
 @login_required(login_url='/')
 def vendedor_dashboard_view(request: HttpRequest):
     if request.user.is_superuser:
