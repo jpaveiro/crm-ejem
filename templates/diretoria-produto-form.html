@@ -143,6 +143,9 @@
 
     .main { margin-top: 64px; margin-left: var(--sidebar-w); padding: 2.5rem 2rem; min-height: calc(100vh - 64px); }
 
+    .icon i {
+      color: black;
+    }
     .page-header { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; }
     .page-header h1 { font-size: 1.7rem; font-weight: 800; letter-spacing: -.03em; }
     .page-header p  { font-size: .9rem; color: var(--muted); margin-top: .25rem; font-weight: 500; }
@@ -235,13 +238,19 @@
 <aside class="sidebar">
   <span class="sidebar-label">Menu</span>
   <a href="{% url 'diretoria-dashboard' %}" class="sidebar-link">
-    <i class="fas fa-chart-bar"></i> Visão Geral
+    <span class="icon">
+  <i class="fas fa-chart-bar"></i>
+</span> Visão Geral
   </a>
   <a href="{% url 'vendedores' %}" class="sidebar-link">
-    <i class="fas fa-user"></i> Vendedores
+    <span class="icon">
+  <i class="fas fa-user"></i>
+</span> Vendedores
   </a>
   <a href="{% url 'produtos' %}" class="sidebar-link active">
-    <i class="fas fa-box"></i> Produtos
+    <span class="icon">
+  <i class="fas fa-money-bill"></i>
+</span> Produtos
   </a>
 </aside>
 
