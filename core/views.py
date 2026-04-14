@@ -26,6 +26,7 @@ def login_view(request: HttpRequest):
  
     try:
         user = User.objects.get(email=email)
+        
         if not user.check_password(password):
             messages.error(request, 'Usuário ou senha inválidos.')
             return redirect('/')
@@ -51,7 +52,7 @@ def dashboard(request):
     elif filtro == '30dias':
         data_inicio = hoje - timedelta(days=30)
     else:
-        data_inicio = hoje - timedelta(days=7)  # padrão
+        data_inicio = hoje - timedelta(days=7) 
 
     vendas = Venda.objects.filter(data__gte=data_inicio)
 
@@ -114,7 +115,7 @@ def vendedor_dashboard_view(request: HttpRequest):
         df_qtd,
         names='produto_curto',
         values='qtd',
-        title='Vendas por Produto (Unidades)',
+        title='Vendas por Produto (%)',
         color_discrete_sequence=px.colors.sequential.Blues_r,
         custom_data=['produto']
     )
@@ -377,10 +378,17 @@ def vendedor_produtos_view(request: HttpRequest):
 def diretoria_dashboard_view(request: HttpRequest):
     if not request.user.is_superuser:
         return redirect('/vendedor/dashboard')
- 
+
     vendedor_filtro = request.GET.get('vendedor', 'todos')
- 
-    qs = Venda.objects.select_related('vendedor', 'produto').annotate(
+    tempo_filtro = request.GET.get('tempo', '7dias')
+
+    hoje = timezone.now()
+    if tempo_filtro == '30dias':
+        data_inicio = hoje - timedelta(days=30)
+    else:
+        data_inicio = hoje - timedelta(days=7)
+
+    qs = Venda.objects.filter(criado_em__gte=data_inicio).select_related('vendedor', 'produto').annotate(
         valor_total=ExpressionWrapper(
             F('produto__preco_final') * F('quantidade'),
             output_field=FloatField()
@@ -410,6 +418,7 @@ def diretoria_dashboard_view(request: HttpRequest):
             'lucro_total': '0,00',
             'vendedores': [],
             'vendedor_selecionado': 'todos',
+            'tempo_selecionado': tempo_filtro,
             'page_obj': None,
         })
  
@@ -501,6 +510,7 @@ def diretoria_dashboard_view(request: HttpRequest):
         'lucro_total': f'{lucro_total:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.'),
         'vendedores': vendedores,
         'vendedor_selecionado': vendedor_filtro,
+        'tempo_selecionado': tempo_filtro,
         'page_obj': page_obj,
     })
  

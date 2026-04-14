@@ -352,7 +352,7 @@
       <p>Visão consolidada de vendas, faturamento e lucro da equipe</p>
     </div>
     <div class="filter-bar">
-      <form method="get" style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
+      <form method="get" id="filter-form" style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
         <label for="vendedor">Filtrar por vendedor:</label>
         <select name="vendedor" id="vendedor" onchange="this.form.submit()">
           <option value="todos" {% if vendedor_selecionado == "todos" %}selected{% endif %}>
@@ -365,21 +365,16 @@
             </option>
           {% endfor %}
         </select>
+        <select name="tempo" id="tempo" onchange="this.form.submit()">
+          <option value="7dias" {% if tempo_selecionado == "7dias" %}selected{% endif %}>Últimos 7 dias</option>
+          <option value="30dias" {% if tempo_selecionado == "30dias" %}selected{% endif %}>Últimos 30 dias</option>
+        </select>
       </form>
-      <a href="{% url 'exportar_excel' %}?vendedor={{ vendedor_selecionado }}" class="btn-excel">
+      <a href="{% url 'exportar_excel' %}?vendedor={{ vendedor_selecionado }}&tempo={{ tempo_selecionado }}" class="btn-excel">
         ↓ Exportar Excel
       </a>
     </div>
   </div>
-
-    <div class="filter-bar">
-      <form method="GET">
-        <select name="tempo" onchange="this.form.submit()">
-            <option value="7dias">7 dias</option>
-            <option value="30dias">30 dias</option>
-        </select>
-    </form>
-</div>
   
   <div class="kpi-grid">
     <div class="kpi-card blue">
@@ -454,10 +449,10 @@
         </span>
         <div class="pagination-controls">
           {% if page_obj.has_previous %}
-            <a href="?vendedor={{ vendedor_selecionado }}&page={{ page_obj.previous_page_number }}" class="btn-page">← Anterior</a>
+            <a href="?vendedor={{ vendedor_selecionado }}&tempo={{ tempo_selecionado }}&page={{ page_obj.previous_page_number }}" class="btn-page">← Anterior</a>
           {% endif %}
           {% if page_obj.has_next %}
-            <a href="?vendedor={{ vendedor_selecionado }}&page={{ page_obj.next_page_number }}" class="btn-page next">Próxima →</a>
+            <a href="?vendedor={{ vendedor_selecionado }}&tempo={{ tempo_selecionado }}&page={{ page_obj.next_page_number }}" class="btn-page next">Próxima →</a>
           {% endif %}
         </div>
       </div>
